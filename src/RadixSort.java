@@ -6,9 +6,39 @@ class RadixSort {
   int useBits;
   int[] a, b, digitFrequencies, digitPointers;
 
+  // Used in findGlobalMax
+  static int globalMax;
 
   RadixSort(int useBits) {
     this.useBits = useBits;
+  }
+
+
+  static class FindMaxMulti implements Runnable {
+    int[] a;
+    int id;
+    int numThreads;
+
+    FindMaxMulti(int[] a, int id, int numThreads) {
+      this.a = a;
+      this.id = id;
+      this.numThreads = numThreads;
+    }
+
+    public void run() {
+      int localMax  = 0;
+      for (int i = id; i < a.length; i = i + numThreads)
+        if (a[i] > localMax)
+          localMax = a[i];
+
+      updateGlobalMax(localMax);
+    }
+
+  }
+
+  synchronized static void updateGlobalMax(int localMax) {
+    if (localMax > globalMax)
+      globalMax = localMax;
   }
 
 
@@ -86,6 +116,26 @@ class RadixSort {
 
   }
 
+  int[] multiRadixSort(int[] unsortedArray) {
+    int numThreads = Runtime.getRuntime().availableProcessors();
+
+    Thread[] threads = new Thread[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+      threads[i] = new Thread(new FindMaxMulti(unsortedArray, i, numThreads));
+      threads[i].start();
+    }
+    try {
+      for (Thread t : threads)
+        t.join();
+    } catch (Exception e) {
+      System.out.println("Caught exception in multiRadixSort :" + e.toString());
+    }
+
+    System.out.println("Parallel findMax = " + globalMax);
+
+    return null;
+  }
+
 
   public static void main(String[] args) {
 
@@ -113,6 +163,15 @@ class RadixSort {
     int[] arraysort = Oblig4Precode.generateArray(n, seed);
     Arrays.sort(arraysort);
     System.out.println("Arrays are equal: " + Arrays.equals(arraysort, a));
+
+
+    // MULTICORE
+
+    int[] aMulti = Oblig4Precode.generateArray(n, seed);
+
+    rs.multiRadixSort(aMulti);
+
+
 
   }
 
