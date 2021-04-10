@@ -156,14 +156,18 @@ class RadixSort {
       start = (a.length / numThreads) * id;
       if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
       else stop = a.length;
-      numDigits = stop - start;
-      count = new int[numDigits];
+      //numDigits = stop - start;
+      count = new int[a.length];
 
-      System.out.println("(" + id + ") start = " + start + ", stop = " + stop + ", numDigits = " + numDigits);
+      System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
 
 
       for (int i = start; i < stop; i++){
-        count[(a[i]>> shift) & mask]++;
+        try {
+          count[(a[i] >> shift) & mask]++;
+        } catch (Exception e) {
+          System.out.println("Exception!!!");
+        }
       }
 
       allCount[id] = count;
@@ -193,15 +197,19 @@ class RadixSort {
 
     Thread[] threads = new Thread[numThreads];
     cyclicBarrier = new CyclicBarrier(numThreads);
+    allCount = new int[numThreads][];
     for (int i = 0; i < numThreads; i++) {
       threads[i] = new Thread(new FindMaxMulti(unsortedArray, i, numThreads));
       threads[i].start();
     }
+
     try {
       for (Thread t : threads)
         t.join();
     } catch (Exception e) {
       System.out.println("Caught exception in multiRadixSort :" + e.toString());
+      System.out.println("Stack trace : ");
+      e.printStackTrace();
     }
 
     System.out.println("Parallel findMax = " + globalMax);
