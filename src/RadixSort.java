@@ -11,11 +11,15 @@ class RadixSort {
   // Used in findGlobalMax
   static int globalMax;
 
+  CyclicBarrier cyclicBarrier;
+
   // Used for step b)
   int[][] allCount;
   int[] sumCount;
 
-  CyclicBarrier cyclicBarrier;
+  // Used for step c)
+  int[] multiPointers;
+
 
   RadixSort(int useBits) {
     this.useBits = useBits;
@@ -38,8 +42,11 @@ class RadixSort {
 
 
     // STEP D : Place the numbers in array A, in the correct places of array B
-    for (int num : a)
-      b[digitPointers[(num >> shift) & mask]++] = num;
+    for (int num : a) {
+      int numShiftedAndMasked = (num >> shift) & mask;
+      int pos = digitPointers[numShiftedAndMasked]++;
+      b[pos] = num;
+    }
 
     //System.out.println("DEBUG");
   }
@@ -109,97 +116,6 @@ class RadixSort {
       this.id = id;
       this.numThreads = numThreads;
       this.localUseBits = useBits;
-      //b = new int[a.length];
-    }
-
-    public void run2() {
-
-      //////////////// STEP A
-      int localMax  = 0;
-      for (int i = id; i < a.length; i = i + numThreads)
-        if (a[i] > localMax)
-          localMax = a[i];
-
-      updateGlobalMax(localMax);
-
-      try {
-        cyclicBarrier.await();
-      } catch (InterruptedException e) {
-      } catch (BrokenBarrierException e) {
-      }
-
-      // Substep: Finding number of bits that is needed to represent max value
-      int numBitsMax = 1;
-      while (globalMax >= (1L << numBitsMax))
-        numBitsMax++;
-
-
-      int numOfPositions = numBitsMax / localUseBits;
-      if (numBitsMax % localUseBits != 0) numOfPositions++;
-      if (numBitsMax < localUseBits) localUseBits = numBitsMax;
-      int mask = (1 << localUseBits) - 1;
-      //int mask = (1 << localUseBits) - 1;
-      int shift = 0;
-
-      /////////////// END STEP A
-
-      //for (int shiftPos = 0; shiftPos < 1; shiftPos++) {
-      for (int shiftPos = 0; shiftPos < numOfPositions; shiftPos++) {
-
-        /////////////// STEP B
-
-        int start, stop;
-        int[] count;
-
-        start = (a.length / numThreads) * id;
-        if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
-        else stop = a.length;
-
-        count = new int[mask + 1];
-
-        System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
-
-        for (int i = start; i < stop; i++) {
-          count[(a[i] >> shift) & mask]++;
-        }
-
-        allCount[id] = count;
-
-        try {
-          cyclicBarrier.await();
-        } catch (InterruptedException e) {
-        } catch (BrokenBarrierException e) {
-        }
-
-        start = (sumCount.length / numThreads) * id;
-        if (id != numThreads - 1) stop = (sumCount.length / numThreads) * (id + 1);
-        else stop = sumCount.length;
-
-        System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
-
-        for (int i = 0; i < numThreads; i++) {
-          //for (int j = 0; j < sumCount.length; j++){
-          for (int j = start; j < stop; j++) {
-            sumCount[j] += allCount[i][j];
-          }
-        }
-
-        try {
-          cyclicBarrier.await();
-        } catch (InterruptedException e) {
-        } catch (BrokenBarrierException e) {
-        }
-
-        // shifting bits and flipping between the arrays
-        shift += localUseBits;
-        /*int[] temp = a;
-        a = b;
-        b = temp;*/
-      }
-
-
-      System.out.println("stop thread " + id);
-
     }
 
     public void run() {
@@ -250,11 +166,26 @@ class RadixSort {
         }
       }
 
+      multiPointers = new int[mask + 1];
       try {
         cyclicBarrier.await();
       } catch (InterruptedException e) {
       } catch (BrokenBarrierException e) {
       }
+
+      ////////////// END STEP B
+
+      ////////////// STEP C
+
+      // STEP C : Find the start position of each digit in array B.
+      digitPointers = new int[mask + 1];
+      for (int i = 0; i < digitFrequencies.length - 1; i++)
+        digitPointers[i + 1] = digitPointers[i] + digitFrequencies[i];
+
+      for (int i = start; i < stop - 1; i++) {
+
+      }
+
     }
 
     int[] radixSortMulti(int[] unSortedArray) {
@@ -373,6 +304,8 @@ class RadixSort {
     // Radix sorting
     int[] a = null;
     int[] unsortedArray = Oblig4Precode.generateArray(n, seed);
+    int[] customArray = {170, 61, 512, 503, 693, 703, 154, 275, 765, 87, 897, 677, 509, 908};
+    unsortedArray = customArray;
 
     RadixSort rs = new RadixSort(useBits);
 
@@ -388,13 +321,12 @@ class RadixSort {
 
     // Quick check to see if sorted (takes a few seconds at high n's)
     int[] arraysort = Oblig4Precode.generateArray(n, seed);
+    arraysort = customArray;
     Arrays.sort(arraysort);
     System.out.println("Arrays are equal: " + Arrays.equals(arraysort, a));
 
 
     // MULTICORE
-
-    //int[] aMulti = Oblig4Precode.generateArray(n, seed);
 
     for (int i = 0; i < NUM_REPETITIONS; i++) {
       long start, stop;
