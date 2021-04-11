@@ -30,7 +30,7 @@ class RadixSort {
     for (int num : a)
       digitFrequencies[(num >> shift) & mask]++;
 
-/*
+
     // STEP C : Find the start position of each digit in array B.
     digitPointers = new int[mask + 1];
     for (int i = 0; i < digitFrequencies.length - 1; i++)
@@ -40,8 +40,8 @@ class RadixSort {
     // STEP D : Place the numbers in array A, in the correct places of array B
     for (int num : a)
       b[digitPointers[(num >> shift) & mask]++] = num;
-*/
-    System.out.println("DEBUG");
+
+    //System.out.println("DEBUG");
   }
 
   // Radix sort. Uses counting sort for each position.
@@ -209,7 +209,7 @@ class RadixSort {
       /////////////// END STEP A
 
 
-      System.out.println("stop thread " + id);
+      //System.out.println("stop thread " + id);
 
     }
 
@@ -224,7 +224,7 @@ class RadixSort {
       count = new int[mask + 1];
       sumCount = new int[mask + 1];
 
-      System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
+      //System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
 
       for (int i = start; i < stop; i++) {
         count[(a[i] >> shift) & mask]++;
@@ -242,7 +242,7 @@ class RadixSort {
       if (id != numThreads - 1) stop = (sumCount.length / numThreads) * (id + 1);
       else stop = sumCount.length;
 
-      System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
+      //System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
 
       for (int i = 0; i < numThreads; i++) {
         for (int j = start; j < stop; j++) {
@@ -343,7 +343,7 @@ class RadixSort {
       e.printStackTrace();
     }
 
-    System.out.println("Parallel findMax = " + globalMax);
+    //System.out.println("Parallel findMax = " + globalMax);
 
     return null;
   }
@@ -366,10 +366,25 @@ class RadixSort {
 
     }
 
+    int NUM_REPETITIONS = 5;
+    long[] sequentialTimes = new long[NUM_REPETITIONS];
+    long[] parallelTimes = new long[NUM_REPETITIONS];
+
     // Radix sorting
-    int[] a = Oblig4Precode.generateArray(n, seed);
+    int[] a = null;
+    int[] unsortedArray = Oblig4Precode.generateArray(n, seed);
+
     RadixSort rs = new RadixSort(useBits);
-    a = rs.radixSort(a);
+
+    for (int i = 0; i < NUM_REPETITIONS; i++) {
+      long start, stop;
+      start = System.nanoTime();
+      a = rs.radixSort(unsortedArray);
+      stop = System.nanoTime();
+      sequentialTimes[i] = stop - start;
+      System.out.println("Sequential time run #" + i + " : " + sequentialTimes[i]);
+    }
+
 
     // Quick check to see if sorted (takes a few seconds at high n's)
     int[] arraysort = Oblig4Precode.generateArray(n, seed);
@@ -379,9 +394,22 @@ class RadixSort {
 
     // MULTICORE
 
-    int[] aMulti = Oblig4Precode.generateArray(n, seed);
+    //int[] aMulti = Oblig4Precode.generateArray(n, seed);
 
-    rs.multiRadixSort(aMulti, useBits);
+    for (int i = 0; i < NUM_REPETITIONS; i++) {
+      long start, stop;
+      start = System.nanoTime();
+      rs.multiRadixSort(unsortedArray, useBits);
+      stop = System.nanoTime();
+      parallelTimes[i] = stop - start;
+      System.out.println("Parallel time run #" + i + "   : " + parallelTimes[i]);
+    }
+
+    Arrays.sort(sequentialTimes);
+    Arrays.sort(parallelTimes);
+    System.out.println("Median sequential time : " + sequentialTimes[NUM_REPETITIONS / 2]);
+    System.out.println("Median parallel time   : " + parallelTimes[NUM_REPETITIONS / 2]);
+    System.out.println("Speedup                : " + ((double)sequentialTimes[NUM_REPETITIONS / 2] / (double)parallelTimes[NUM_REPETITIONS / 2]));
 
 
 
