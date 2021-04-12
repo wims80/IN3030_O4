@@ -180,15 +180,24 @@ class RadixSort {
 
       ////////////// STEP C
 
+      System.out.println("ID = " + id + " start = " + start + " stop = " + stop);
 
-      for (int t = start; t < stop - 1; t++) {
+      if (stop == localCount.length) stop--;
+      for (int t = start; t < stop; t++) {
         for (int r = 0; r < allCount.length; r++) {
           for (int s = 0; s < t; s++) {
-            localCount[t] += allCount[r][s];
+            localCount[t + 1] += allCount[r][s];
           }
         }
         for (int r = 0; r < id; r++) {
-          localCount[t] += allCount[r][t];
+          //localCount[t] += allCount[r][t];
+          localCount[t + 1] += allCount[r][t];
+
+          //if (t < localCount.length - 1) {
+            //
+            //else
+            //localCount[t + 1] += allCount[r][t];
+          //}
         }
       }
 
@@ -216,6 +225,7 @@ class RadixSort {
       if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
       else stop = a.length;
 
+
       for (int i = start; i < stop; i++) {
         int num = a[i];
         int numShiftedAndMasked = (num >> shift) & mask;
@@ -230,7 +240,7 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
       }
 
-      System.out.println("Finished temp");
+          System.out.println("Finished temp");
 
 
 
@@ -298,12 +308,12 @@ class RadixSort {
         } catch (InterruptedException e) {
         } catch (BrokenBarrierException e) {
         }
-        /*if (id == 0) {
+        if (id == 0) {
           // Setting array a to be the array to be sorted again
           int[] temp = a;
           a = b;
           b = temp;
-        }*/
+        }
         try {
           cyclicBarrier.await();
         } catch (InterruptedException e) {
