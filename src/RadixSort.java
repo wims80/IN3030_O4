@@ -27,6 +27,7 @@ class RadixSort {
   // Used for debugging
   int[] sequentialSorted;
   int[] digitPontersCopy;
+  int[] multiSorted;
 
 
   RadixSort(int useBits) {
@@ -131,8 +132,9 @@ class RadixSort {
     public void run() {
 
       //////////////// STEP A
-      radixSortMulti(unsortedArray);
+      int[] ar = radixSortMulti(unsortedArray);
       /////////////// END STEP A
+      if (id == 0) multiSorted = ar;
 
 
       //System.out.println("stop thread " + id);
@@ -224,11 +226,6 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
       }
 
-      for (int i = 0; i < sumCount.length; i++) {
-        if (multiPointers[i] != digitPontersCopy[i]) {
-          System.out.println("Uneven!");
-        }
-      }
 
       ////// END STEP C
 
@@ -236,7 +233,7 @@ class RadixSort {
 
       start = (a.length / numThreads) * id;
       if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
-      else stop = a.length - 1;
+      else stop = a.length;
 
       for (int i = start; i < stop; i++) {
         int num = a[i];
@@ -250,34 +247,6 @@ class RadixSort {
       } catch (InterruptedException e) {
       } catch (BrokenBarrierException e) {
       }
-      /*// STEP D : Place the numbers in array A, in the correct places of array B
-      for (int num : a) {
-        int numShiftedAndMasked = (num >> shift) & mask;
-        int pos = digitPointers[numShiftedAndMasked]++;
-        b[pos] = num;
-      }
-       */
-
-
-
-
-
-
-      System.out.println("temp 1");
-
-/*
-      // STEP C : Find the start position of each digit in array B.
-      digitPointers = new int[mask + 1];
-      for (int i = 0; i < digitFrequencies.length - 1; i++)
-        digitPointers[i + 1] = digitPointers[i] + digitFrequencies[i];
-*/
-      ////////////// END STEP B
-
-      ////////////// STEP C
-
-      System.out.println("ID = " + id + " start = " + start + " stop = " + stop);
-
-
 
       /*
       //if (stop == localCount.length) stop--;
@@ -344,7 +313,7 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
       }
 */
-          System.out.println("Finished temp");
+          //System.out.println("Finished temp");
 
 
 
@@ -419,7 +388,7 @@ class RadixSort {
         } catch (BrokenBarrierException e) {
         }
 
-           System.out.println("Barrier reached");
+//           System.out.println("Barrier reached");
 
       }
 
@@ -462,6 +431,20 @@ class RadixSort {
     //System.out.println("Parallel findMax = " + globalMax);
 
     return null;
+  }
+
+  public static void compareArrays(int[] a, int[] b) {
+    boolean equal = true;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        System.out.println("The element at position " + i + " is not the same between a and b");
+        System.out.println("a[" + i + "] == " + a[i]);
+        System.out.println("b[" + i + "] == " + b[i]);
+        equal = false;
+      }
+    }
+    if (equal) System.out.println("The parallel and the sequentially sorted arrays are identical!");
+    else System.out.println("The parallel and the sequentially sorted arrays are not identical :(");
   }
 
 
@@ -536,6 +519,7 @@ class RadixSort {
     System.out.println("Median parallel time   : " + parallelTimes[NUM_REPETITIONS / 2]);
     System.out.println("Speedup                : " + ((double)sequentialTimes[NUM_REPETITIONS / 2] / (double)parallelTimes[NUM_REPETITIONS / 2]));
 
+    compareArrays(rs.sequentialSorted, rs.multiSorted);
 
 
   }
