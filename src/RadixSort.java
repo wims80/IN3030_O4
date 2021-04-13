@@ -241,7 +241,7 @@ class RadixSort {
       for (int i = start; i < stop; i++) {
         int num = a[i];
         int numShiftedAndMasked = (num >> shift) & mask;
-        int pos = multiPointers[numShiftedAndMasked];
+        int pos = multiPointers[numShiftedAndMasked]++;
         b[pos] = num;
       }
 
