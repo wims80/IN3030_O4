@@ -20,6 +20,14 @@ class RadixSort {
   // Used for step c)
   int[] multiPointers;
 
+  int[][] delSum2;
+  int[] maxSum;
+
+
+  // Used for debugging
+  int[] sequentialSorted;
+  int[] digitPontersCopy;
+
 
   RadixSort(int useBits) {
     this.useBits = useBits;
@@ -41,6 +49,7 @@ class RadixSort {
       digitPointers[i + 1] = digitPointers[i] + digitFrequencies[i];
 
 
+    digitPontersCopy = digitPointers.clone();
     // STEP D : Place the numbers in array A, in the correct places of array B
     for (int num : a) {
       int numShiftedAndMasked = (num >> shift) & mask;
@@ -48,7 +57,7 @@ class RadixSort {
       b[pos] = num;
     }
 
-    //System.out.println("DEBUG");
+    System.out.println("DEBUG");
   }
 
   // Radix sort. Uses counting sort for each position.
@@ -110,6 +119,7 @@ class RadixSort {
     int id;
     int numThreads;
     int localUseBits;
+    int[] delSum;
 
     FindMaxMulti(int[] unsortedArray, int id, int numThreads, int useBits) {
       this.unsortedArray = unsortedArray;
@@ -129,16 +139,17 @@ class RadixSort {
 
     }
 
-    private void countingSortMulti(int mask, int shift) {
+    void countingSortMulti(int mask, int shift) {
       int start, stop;
       int[] count;
+
+      ////////////////// STEP B
 
       start = (a.length / numThreads) * id;
       if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
       else stop = a.length;
 
       count = new int[mask + 1];
-      sumCount = new int[mask + 1];
 
       //System.out.println("(" + id + ") start = " + start + ", stop = " + stop);
 
@@ -154,6 +165,7 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
       }
 
+
       start = (sumCount.length / numThreads) * id;
       if (id != numThreads - 1) stop = (sumCount.length / numThreads) * (id + 1);
       else stop = sumCount.length;
@@ -166,6 +178,7 @@ class RadixSort {
         }
       }
 
+
       multiPointers = new int[mask + 1];
 
       try {
@@ -176,12 +189,110 @@ class RadixSort {
 
       int[] localCount = new int[mask + 1];
 
+
+      int currentValue = 0;
+      if (id == numThreads - 1) stop--;
+      for (int i = start; i < stop; i++) {
+        currentValue += sumCount[i];
+        delSum[i + 1] = currentValue;
+        //multiPointers[i + 1] = currentValue;
+      }
+      maxSum[id] = currentValue;
+      //delSum2[id] = delSum;
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+      } catch (BrokenBarrierException e) {
+      }
+
+      int startValue = 0;
+      for (int i = 0; i < id; i++) {
+        startValue += maxSum[i];
+      }
+
+      currentValue = startValue;
+      if (id == numThreads - 1) stop--;
+      for (int i = start; i < stop; i++) {
+        currentValue = startValue + delSum[i];
+        multiPointers[i] = currentValue;
+      }
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+      } catch (BrokenBarrierException e) {
+      }
+
+      for (int i = 0; i < sumCount.length; i++) {
+        if (multiPointers[i] != digitPontersCopy[i]) {
+          System.out.println("Uneven!");
+        }
+      }
+
+      ////// END STEP C
+
+      /////// STEP D
+
+      start = (a.length / numThreads) * id;
+      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
+      else stop = a.length - 1;
+
+      for (int i = start; i < stop; i++) {
+        int num = a[i];
+        int numShiftedAndMasked = (num >> shift) & mask;
+        int pos = multiPointers[numShiftedAndMasked];
+        b[pos] = num;
+      }
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+      } catch (BrokenBarrierException e) {
+      }
+      /*// STEP D : Place the numbers in array A, in the correct places of array B
+      for (int num : a) {
+        int numShiftedAndMasked = (num >> shift) & mask;
+        int pos = digitPointers[numShiftedAndMasked]++;
+        b[pos] = num;
+      }
+       */
+
+
+
+
+
+
+      System.out.println("temp 1");
+
+/*
+      // STEP C : Find the start position of each digit in array B.
+      digitPointers = new int[mask + 1];
+      for (int i = 0; i < digitFrequencies.length - 1; i++)
+        digitPointers[i + 1] = digitPointers[i] + digitFrequencies[i];
+*/
       ////////////// END STEP B
 
       ////////////// STEP C
 
       System.out.println("ID = " + id + " start = " + start + " stop = " + stop);
 
+
+
+      /*
+      //if (stop == localCount.length) stop--;
+      for (int t = start; t < stop; t++) {
+        for (int r = 0; r < allCount.length; r++) {
+          for (int s = 0; s < t; s++) {
+            localCount[t] += allCount[r][s];
+          }
+        }
+        for (int r = 0; r < id; r++) {
+          localCount[t] += allCount[r][t];
+        }
+      }
+      */
+/*
       if (stop == localCount.length) stop--;
       for (int t = start; t < stop; t++) {
         for (int r = 0; r < allCount.length; r++) {
@@ -190,14 +301,7 @@ class RadixSort {
           }
         }
         for (int r = 0; r < id; r++) {
-          //localCount[t] += allCount[r][t];
           localCount[t + 1] += allCount[r][t];
-
-          //if (t < localCount.length - 1) {
-            //
-            //else
-            //localCount[t + 1] += allCount[r][t];
-          //}
         }
       }
 
@@ -239,14 +343,14 @@ class RadixSort {
       } catch (InterruptedException e) {
       } catch (BrokenBarrierException e) {
       }
-
+*/
           System.out.println("Finished temp");
 
 
 
     }
 
-    synchronized void addToGlobalCount(int[] localCount){
+    void addToGlobalCount(int[] localCount){
       //int prev = -1;
       for (int i = 1; i < localCount.length; i++) {
 //        if (prev > 0 && localCount[i] < prev) return;
@@ -277,27 +381,22 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
       }
 
-      // Substep: Finding number of bits that is needed to represent max value
       int numBitsMax = 1;
       while (globalMax >= (1L << numBitsMax))
         numBitsMax++;
-
-      // Substep: Finding the number of positions needed to represent the max value
       int numOfPositions = numBitsMax / localUseBits;
       if (numBitsMax % localUseBits != 0) numOfPositions++;
-
-      // Substep: If useBits is larger than numBitsMax,
-      // set useBits equal to numBitsMax to save space.
       if (numBitsMax < localUseBits) localUseBits = numBitsMax;
-
-      // Substep: Creating the mask and initialising the shift variable,
-      // both of whom are used to extract the digits.
       int mask = (1 << localUseBits) - 1;
-      //int mask = (1 << localUseBits) - 1;
       int shift = 0;
 
       // Performing the counting sort on each position
       //for (int i = 0; i < 1; i++) {
+      sumCount = new int[mask + 1];
+      delSum = new int[mask + 1];
+      delSum2 = new int[numThreads][];
+      maxSum = new int[numThreads];
+
       for (int i = 0; i < numOfPositions; i++) {
 
         countingSortMulti(mask, shift);
@@ -389,8 +488,11 @@ class RadixSort {
     // Radix sorting
     int[] a = null;
     int[] unsortedArray = Oblig4Precode.generateArray(n, seed);
-    int[] customArray = {170, 61, 512, 503, 693, 703, 154, 275, 765, 87, 897, 677, 509, 908};
-    unsortedArray = customArray.clone();
+    //int[] customArray = {1700, 610, 512, 503, 693, 703, 1540, 2750, 765, 87, 897, 677, 509, 908};
+    int[] customArray = {9, 2, 4, 7, 8, 5, 1, 1, 3, 6};
+    //int[] customArray = {170, 61, 512, 503, 693, 703, 154, 275, 765, 87, 897, 677, 509, 908, 352, 157, 834, 312, 295, 936};
+    //int[] customArray = {170, 61, 512, 503, 693, 703, 154, 275, 765, 87, 897, 677, 509, 908};
+    //unsortedArray = customArray.clone();
 
     RadixSort rs = new RadixSort(useBits);
 
@@ -403,6 +505,8 @@ class RadixSort {
       System.out.println("Sequential time run #" + i + " : " + sequentialTimes[i]);
     }
 
+    rs.sequentialSorted = a.clone();
+
 
     // Quick check to see if sorted (takes a few seconds at high n's)
     int[] arraysort = Oblig4Precode.generateArray(n, seed);
@@ -414,7 +518,7 @@ class RadixSort {
     // MULTICORE
 
     int[] multiUnsortedArray = unsortedArray.clone();
-    multiUnsortedArray = customArray.clone();
+    //multiUnsortedArray = customArray.clone();
 
     for (int i = 0; i < NUM_REPETITIONS; i++) {
       long start, stop;
