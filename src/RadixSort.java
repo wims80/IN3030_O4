@@ -213,7 +213,7 @@ class RadixSort {
         startValue += maxSum[i];
       }
 
-      if (id == numThreads - 1) stop--;
+      if (id == numThreads - 1) stop++;
       for (int i = start; i < stop; i++) {
         currentValue = startValue + delSum[i];
         multiPointers[i] = currentValue;
@@ -336,7 +336,7 @@ class RadixSort {
 
     int[] radixSortMulti(int[] unSortedArray) {
       a = unSortedArray;
-      //b = new int[a.length];
+      b = new int[a.length];
 
       // STEP A: Find the maximum value
       int localMax  = 0;
@@ -518,7 +518,7 @@ class RadixSort {
     System.out.println("Median parallel time   : " + parallelTimes[NUM_REPETITIONS / 2]);
     System.out.println("Speedup                : " + ((double)sequentialTimes[NUM_REPETITIONS / 2] / (double)parallelTimes[NUM_REPETITIONS / 2]));
 
-    //compareArrays(rs.sequentialSorted, rs.multiSorted);
+    compareArrays(rs.sequentialSorted, rs.multiSorted);
 
 
   }
