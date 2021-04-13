@@ -149,7 +149,8 @@ class RadixSort {
       count = new int[mask + 1];
 
       for (int i = start; i < stop; i++) {
-        count[(a[i] >> shift) & mask]++;
+        //count[(a[i] >> shift) & mask]++;
+        count[(unsortedArray[i] >> shift) & mask]++;
       }
 
       allCount[id] = count;
@@ -175,7 +176,6 @@ class RadixSort {
         }
       }
 
-
       multiPointers = new int[mask + 1];
 
       try {
@@ -197,7 +197,6 @@ class RadixSort {
       for (int i = start; i < stop; i++) {
         currentValue += sumCount[i];
         delSum[i + 1] = currentValue;
-        //multiPointers[i + 1] = currentValue;
       }
       maxSum[id] = currentValue;
 
@@ -501,7 +500,7 @@ class RadixSort {
 
     // MULTICORE
 
-    int[] multiUnsortedArray = unsortedArray.clone();
+    int[] multiUnsortedArray = Oblig4Precode.generateArray(n, seed);
     //multiUnsortedArray = customArray.clone();
 
     for (int i = 0; i < NUM_REPETITIONS; i++) {
