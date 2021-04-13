@@ -428,6 +428,7 @@ class RadixSort {
 
   }
 
+
   synchronized static void updateGlobalMax(int localMax) {
     if (localMax > globalMax)
       globalMax = localMax;
