@@ -41,7 +41,6 @@ public class Oblig4Precode {
 
     int max = (n > Integer.MAX_VALUE / 4) ? Integer.MAX_VALUE : n * 4;
 
-    max = 16;
 
 
     for(int i=0; i < ret.length; i++)

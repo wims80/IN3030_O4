@@ -59,7 +59,7 @@ class RadixSort {
       b[pos] = num;
     }
 
-    System.out.println("DEBUG");
+    //System.out.println("DEBUG");
   }
 
   // Radix sort. Uses counting sort for each position.
@@ -261,7 +261,6 @@ class RadixSort {
       System.out.println("END");
     }
 
-/*
     void addToGlobalCount(int[] localCount){
       //int prev = -1;
       for (int i = 1; i < localCount.length; i++) {
@@ -272,7 +271,6 @@ class RadixSort {
         }
       }
     }
-*/
 
     int getStart(int[] array) {
       return ((array.length / numThreads) * id);
@@ -287,13 +285,10 @@ class RadixSort {
 
       /////////////// STEP B
 
+      //System.out.println("Starting step b");
+
       int start, stop;
 
-/*
-      start = (a.length / numThreads) * id;
-      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
-      else stop = a.length;
-*/
       start = getStart(a);
       stop = getStop(a);
 
@@ -313,11 +308,6 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
-/*
-      start = (sumCount.length / numThreads) * id;
-      if (id != numThreads - 1) stop = (sumCount.length / numThreads) * (id + 1);
-      else stop = sumCount.length;
-*/
 
       start = getStart(sumCount);
       stop = getStop(sumCount);
@@ -340,6 +330,8 @@ class RadixSort {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
 
+      //System.out.println("Starting step c");
+
       int[] localCount = new int[mask + 1];
       for (int t = start; t < stop; t++) {
         for (int r = 0; r < allCount.length; r++) {
@@ -351,7 +343,6 @@ class RadixSort {
           localCount[t] += allCount[r][t];
         }
       }
-      //globalCount = new int[localCount.length];
       globalCount = new int[numThreads][];
 
       try {
@@ -362,19 +353,10 @@ class RadixSort {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
 
-      //allCount[id] = localCount;
 
       /////////////// END STEP C
       globalCount[id] = localCount;
-/*
-      if (id == 0) {
-        int pos = 0;
-        for (int i = 0; i < localCount.length; i++) {
-          if (i > numThreads)
-            globalCount[i] += allCount[pos][i];
-        }
-      }
-*/
+
       try {
         cyclicBarrier.await();
       } catch (InterruptedException e) {
@@ -383,22 +365,20 @@ class RadixSort {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
 
+      //System.out.println("Starting step d");
+
       /////////////// STEP D
-      /*
-      start = (a.length / numThreads) * id;
-      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
-      else stop = a.length;
-      */
 
       start = getStart(sumCount);
       stop = getStop(sumCount);
+      if (stop > globalMax) stop = globalMax + 1;
 
       int index = localCount[start];
       for (int i = start; i < stop; i++) {
-        //int index = sumCount[i];
-        //int index = localCount[i];
         while (sumCount[i] > 0) {
           b[index++] = i;
+          //b[index] = i;
+          //if (index < b.length - 1) index++;
           sumCount[i]--;
         }
       }
@@ -410,30 +390,8 @@ class RadixSort {
       } catch (BrokenBarrierException e) {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
-/*
-      start = getStart(a);
-      stop = getStop(a);
 
-      for (int i = start; i < stop; i++){
-        int num = a[i];
-        if (sumCount[i] > num) {
-
-        }
-        int numShiftedAndMasked = (num >> shift) & mask;
-        int pos = localCount[numShiftedAndMasked]++;
-        b[pos] = num;
-      }
-
-      try {
-        cyclicBarrier.await();
-      } catch (InterruptedException e) {
-        System.out.println("InterruptedException! " + e.toString());
-      } catch (BrokenBarrierException e) {
-        System.out.println("BrokenBarrierException! " + e.toString());
-      }
-*/
-
-      System.out.println("Finished temp");
+      // System.out.println("DEBUG");
     }
 
     int[] radixSortMulti(int[] unSortedArray) {
@@ -472,6 +430,7 @@ class RadixSort {
         delSum = new int[mask + 1];
         sumCount = new int[mask + 1];
 
+        // Different variant of the algorithm, it is also broken
         //countingSortMulti(mask, shift);
         cs2(mask, shift);
         shift += localUseBits;
@@ -511,8 +470,7 @@ class RadixSort {
   int[] multiRadixSort(int[] unsortedArray, int useBits) {
 
     int numThreads = Runtime.getRuntime().availableProcessors();
-    numThreads = 4;
-
+    //numThreads = 4;
 
     cyclicBarrier = new CyclicBarrier(numThreads);
     allCount = new int[numThreads][];
@@ -534,8 +492,6 @@ class RadixSort {
       e.printStackTrace();
     }
 
-    //System.out.println("Parallel findMax = " + globalMax);
-
     return a;
   }
 
@@ -553,6 +509,15 @@ class RadixSort {
     else System.out.println("The parallel and the sequentially sorted arrays are not identical :(");
   }
 
+  static boolean isSorted(int[] a) {
+    for (int i = 1; i < a.length; i++) {
+      if (!(a[i - 1] <= a[i])) {
+        System.out.println("Array not in order starting at index " + i);
+        return false;
+      }
+    }
+    return true;
+  }
 
   public static void main(String[] args) {
 
@@ -571,14 +536,13 @@ class RadixSort {
 
     }
 
-    int NUM_REPETITIONS = 1;
+    int NUM_REPETITIONS = 7;
     long[] sequentialTimes = new long[NUM_REPETITIONS];
     long[] parallelTimes = new long[NUM_REPETITIONS];
 
     // Radix sorting
     int[] a = null;
     int[] unsortedArray = Oblig4Precode.generateArray(n, seed);
-    //int[] customArray = {1700, 610, 512, 503, 693, 703, 1540, 2750, 765, 87, 897, 677, 509, 908};
     int[] customArray = {9, 2, 4, 7, 8, 5, 1, 1, 3, 6};
     //unsortedArray = customArray.clone();
 
@@ -590,7 +554,7 @@ class RadixSort {
       a = rs.radixSort(unsortedArray);
       stop = System.nanoTime();
       sequentialTimes[i] = stop - start;
-      System.out.println("Sequential time run #" + i + " : " + sequentialTimes[i]);
+      System.out.println("Sequential time run #" + i + " : " + sequentialTimes[i] + "ns");
     }
 
     rs.sequentialSorted = a.clone();
@@ -614,18 +578,31 @@ class RadixSort {
       rs.multiRadixSort(multiUnsortedArray, useBits);
       stop = System.nanoTime();
       parallelTimes[i] = stop - start;
-      System.out.println("Parallel time run #" + i + "   : " + parallelTimes[i]);
+      System.out.println("Parallel time run #" + i + "   : " + parallelTimes[i] + "ns");
     }
 
     Arrays.sort(sequentialTimes);
     Arrays.sort(parallelTimes);
-    System.out.println("Median sequential time : " + sequentialTimes[NUM_REPETITIONS / 2]);
-    System.out.println("Median parallel time   : " + parallelTimes[NUM_REPETITIONS / 2]);
-    System.out.println("Speedup                : " + ((double)sequentialTimes[NUM_REPETITIONS / 2] / (double)parallelTimes[NUM_REPETITIONS / 2]));
+    System.out.println("\nMedian sequential time : " + sequentialTimes[NUM_REPETITIONS / 2] + "ns");
+    System.out.println("Median parallel time   : " + parallelTimes[NUM_REPETITIONS / 2] + "ns");
+    System.out.println("Speedup                : " + ((double)sequentialTimes[NUM_REPETITIONS / 2] / (double)parallelTimes[NUM_REPETITIONS / 2]) + "x");
 
-    compareArrays(rs.sequentialSorted, rs.multiSorted);
 
+    if (isSorted(rs.sequentialSorted))
+      System.out.println("The sequential array is sorted");
+    else
+      System.out.println("The sequential array is not sorted");
+
+    if (isSorted(rs.sequentialSorted))
+      System.out.println("The parallel array is sorted");
+    else
+      System.out.println("The parallel array is not sorted");
+
+    Oblig4Precode.saveResults(Oblig4Precode.Algorithm.SEQ, seed, rs.sequentialSorted);
+    Oblig4Precode.saveResults(Oblig4Precode.Algorithm.PAR, seed, rs.multiSorted);
+
+    // compares two arrays
+    //compareArrays(rs.sequentialSorted, rs.multiSorted);
 
   }
-
 }
