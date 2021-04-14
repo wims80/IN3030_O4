@@ -25,8 +25,10 @@ class RadixSort {
 
   // Used for debugging
   int[] sequentialSorted;
-  //int[] digitPointersCopy;
+  int[] digitPointersCopy;
   int[] multiSorted;
+
+  int[][] globalCount;
 
 
   RadixSort(int useBits) {
@@ -241,8 +243,11 @@ class RadixSort {
       for (int i = start; i < stop; i++) {
         int num = a[i];
         int numShiftedAndMasked = (num >> shift) & mask;
-        int pos = multiPointers[numShiftedAndMasked]++;
-        b[pos] = num;
+        //int pos = multiPointers[numShiftedAndMasked]++;
+        int pos = multiPointers[numShiftedAndMasked];
+        if(pos >= start && pos <= stop)
+          multiPointers[numShiftedAndMasked]++;
+          b[pos] = num;
       }
 
       try {
@@ -253,74 +258,9 @@ class RadixSort {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
 
-      /*
-      //if (stop == localCount.length) stop--;
-      for (int t = start; t < stop; t++) {
-        for (int r = 0; r < allCount.length; r++) {
-          for (int s = 0; s < t; s++) {
-            localCount[t] += allCount[r][s];
-          }
-        }
-        for (int r = 0; r < id; r++) {
-          localCount[t] += allCount[r][t];
-        }
-      }
-      */
-/*
-      if (stop == localCount.length) stop--;
-      for (int t = start; t < stop; t++) {
-        for (int r = 0; r < allCount.length; r++) {
-          for (int s = 0; s < t; s++) {
-            localCount[t + 1] += allCount[r][s];
-          }
-        }
-        for (int r = 0; r < id; r++) {
-          localCount[t + 1] += allCount[r][t];
-        }
-      }
-
-
-      try {
-        cyclicBarrier.await();
-      } catch (InterruptedException e) {
-      } catch (BrokenBarrierException e) {
-      }
-
-      addToGlobalCount(localCount);
-
-      try {
-        cyclicBarrier.await();
-      } catch (InterruptedException e) {
-      } catch (BrokenBarrierException e) {
-      }
-
-
-      ///////////// END STEP C
-
-      ///////////// STEP D
-
-      start = (a.length / numThreads) * id;
-      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
-      else stop = a.length;
-
-
-      for (int i = start; i < stop; i++) {
-        int num = a[i];
-        int numShiftedAndMasked = (num >> shift) & mask;
-        int pos = multiPointers[numShiftedAndMasked]++;
-        b[pos] = num;
-      }
-
-
-      try {
-        cyclicBarrier.await();
-      } catch (InterruptedException e) {
-      } catch (BrokenBarrierException e) {
-      }
-*/
-          //System.out.println("Finished temp");
-
+      System.out.println("END");
     }
+
 /*
     void addToGlobalCount(int[] localCount){
       //int prev = -1;
@@ -333,6 +273,168 @@ class RadixSort {
       }
     }
 */
+
+    int getStart(int[] array) {
+      return ((array.length / numThreads) * id);
+    }
+
+    int getStop(int[] array) {
+      if (id != numThreads - 1) return((array.length / numThreads) * (id + 1));
+      else return (array.length);
+    }
+
+    void cs2(int mask, int shift) {
+
+      /////////////// STEP B
+
+      int start, stop;
+
+/*
+      start = (a.length / numThreads) * id;
+      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
+      else stop = a.length;
+*/
+      start = getStart(a);
+      stop = getStop(a);
+
+      int[] count = new int[mask + 1];
+      sumCount = new int[mask + 1];
+
+      for (int i = start; i < stop; i++) {
+        count[(a[i] >> shift) & mask]++;
+      }
+
+      allCount[id] = count;
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+/*
+      start = (sumCount.length / numThreads) * id;
+      if (id != numThreads - 1) stop = (sumCount.length / numThreads) * (id + 1);
+      else stop = sumCount.length;
+*/
+
+      start = getStart(sumCount);
+      stop = getStop(sumCount);
+      for (int i = 0; i < numThreads; i++) {
+        for (int j = start; j < stop; j++) {
+          sumCount[j] += allCount[i][j];
+        }
+      }
+
+      //////////////// END STEP B
+
+      //////////////// STEP C
+
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+
+      int[] localCount = new int[mask + 1];
+      for (int t = start; t < stop; t++) {
+        for (int r = 0; r < allCount.length; r++) {
+          for (int s = 0; s < t; s++) {
+            localCount[t] += allCount[r][s];
+          }
+        }
+        for (int r = 0; r < id; r++) {
+          localCount[t] += allCount[r][t];
+        }
+      }
+      //globalCount = new int[localCount.length];
+      globalCount = new int[numThreads][];
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+
+      //allCount[id] = localCount;
+
+      /////////////// END STEP C
+      globalCount[id] = localCount;
+/*
+      if (id == 0) {
+        int pos = 0;
+        for (int i = 0; i < localCount.length; i++) {
+          if (i > numThreads)
+            globalCount[i] += allCount[pos][i];
+        }
+      }
+*/
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+
+      /////////////// STEP D
+      /*
+      start = (a.length / numThreads) * id;
+      if (id != numThreads - 1) stop = (a.length / numThreads) * (id + 1);
+      else stop = a.length;
+      */
+
+      start = getStart(sumCount);
+      stop = getStop(sumCount);
+
+      int index = localCount[start];
+      for (int i = start; i < stop; i++) {
+        //int index = sumCount[i];
+        //int index = localCount[i];
+        while (sumCount[i] > 0) {
+          b[index++] = i;
+          sumCount[i]--;
+        }
+      }
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+/*
+      start = getStart(a);
+      stop = getStop(a);
+
+      for (int i = start; i < stop; i++){
+        int num = a[i];
+        if (sumCount[i] > num) {
+
+        }
+        int numShiftedAndMasked = (num >> shift) & mask;
+        int pos = localCount[numShiftedAndMasked]++;
+        b[pos] = num;
+      }
+
+      try {
+        cyclicBarrier.await();
+      } catch (InterruptedException e) {
+        System.out.println("InterruptedException! " + e.toString());
+      } catch (BrokenBarrierException e) {
+        System.out.println("BrokenBarrierException! " + e.toString());
+      }
+*/
+
+      System.out.println("Finished temp");
+    }
 
     int[] radixSortMulti(int[] unSortedArray) {
       a = unSortedArray;
@@ -370,7 +472,8 @@ class RadixSort {
         delSum = new int[mask + 1];
         sumCount = new int[mask + 1];
 
-        countingSortMulti(mask, shift);
+        //countingSortMulti(mask, shift);
+        cs2(mask, shift);
         shift += localUseBits;
 
         try {
@@ -406,7 +509,9 @@ class RadixSort {
 
 
   int[] multiRadixSort(int[] unsortedArray, int useBits) {
+
     int numThreads = Runtime.getRuntime().availableProcessors();
+    numThreads = 4;
 
 
     cyclicBarrier = new CyclicBarrier(numThreads);
