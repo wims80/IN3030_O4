@@ -155,6 +155,7 @@ class RadixSort {
         System.out.println("BrokenBarrierException! " + e.toString());
       }
 
+      // find mask
       int numBitsMax = 1;
       while (globalMax >= (1L << numBitsMax))
         numBitsMax++;
@@ -164,7 +165,7 @@ class RadixSort {
       int mask = (1 << localUseBits) - 1;
       int shift = 0;
 
-
+      // start countingSortMulti for each mask
       for (int i = 0; i < numOfPositions; i++) {
         countingSortMulti(mask, shift);
         shift += localUseBits;
@@ -196,6 +197,7 @@ class RadixSort {
     void countingSortMulti(int mask, int shift) {
 
       /////////////// STEP B
+      // counts the amount of each digit
 
       int start, stop;
 
@@ -221,6 +223,7 @@ class RadixSort {
       //////////////// END STEP B
 
       //////////////// STEP C
+      // create pointers from counts
 
       int[] localPointers = new int[mask + 1];
       for (int t = 0; t < localPointers.length; t++) {
@@ -237,12 +240,12 @@ class RadixSort {
       /////////////// END STEP C
 
       /////////////// STEP D
+      // move elements based on the pointers
 
       start = getStart(aMulti);
       stop = getStop(aMulti);
-      for (int i = start; i < stop; i++) {
+      for (int i = start; i < stop; i++)
         bMulti[localPointers[((aMulti[i] >> shift) & mask)]++] = aMulti[i];
-      }
 
     }
 
