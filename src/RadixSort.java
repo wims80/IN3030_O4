@@ -262,7 +262,7 @@ class RadixSort {
       globalMax = localMax;
   }
 
-  int[] multiRadixSort(int[] unsortedArray, int useBits) {
+  void multiRadixSort(int[] unsortedArray, int useBits) {
 
     int numThreads = Runtime.getRuntime().availableProcessors();
 
@@ -284,8 +284,6 @@ class RadixSort {
       System.out.println("Stack trace : ");
       e.printStackTrace();
     }
-
-    return a;
   }
 
   static void compareArrays(int[] a, int[] b) {
